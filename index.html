@@ -1,184 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Butterfly Hit Game</title>
-  <style>
-    /* --- Global layout --- */
-    body{margin:0;overflow:hidden;font-family:Arial, sans-serif;background:skyblue;}
-    #gameCanvas{display:block;background:#9C6782;}
 
-    /* --- Heads‑up display --- */
-    #hud{
-      position:absolute;top:10px;left:10px;
-      display:flex;gap:12px;align-items:center;
-      font-size:24px;font-weight:bold;
-      background:rgba(255,255,255,.7);padding:6px 14px;border-radius:8px;
-      visibility:hidden;          /* hidden until a time is chosen */
-    }
-    #hud button{font-size:18px;font-weight:bold;padding:4px 12px;cursor:pointer;}
-
-    /* --- Full‑screen overlays (start & game‑over) --- */
-    .overlay{
-      position:fixed;inset:0;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;text-align:center;
-    }
-    #startMenu{
-      background:rgba(0,0,0,.55);color:#fff;
-      gap:16px;
-    }
-    #startMenu h1{margin:0 0 4px;font-size:48px;}
-    #startMenu p{margin:0 0 14px;font-size:24px;}
-    #startMenu .menu-buttons{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
-    #startMenu button{
-      font-size:22px;font-weight:bold;padding:8px 18px;cursor:pointer;border-radius:6px;
-    }
-    #gameOver{
-      background:rgba(0,0,0,.6);color:#fff;font-size:36px;visibility:hidden;
-    }
-    #gameOver button{margin-top:20px;padding:10px 24px;font-size:20px;cursor:pointer;}
-  </style>
+  <!-- main stylesheet -->
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <!-- Start‑menu overlay -->
+  <!-- ───── Start Menu ───── -->
   <div id="startMenu" class="overlay">
     <h1>Butterfly Hit Game</h1>
     <p>Select Time Limit</p>
     <div class="menu-buttons">
-      <button data-min="1">1&nbsp;Minute</button>
-      <button data-min="3">3&nbsp;Minutes</button>
-      <button data-min="5">5&nbsp;Minutes</button>
-      <button data-min="10">10&nbsp;Minutes</button>
+      <button data-min="1">1 Minute</button>
+      <button data-min="3">3 Minutes</button>
+      <button data-min="5">5 Minutes</button>
+      <button data-min="10">10 Minutes</button>
     </div>
   </div>
 
-  <!-- HUD -->
+  <!-- ───── HUD (in‑game) ───── -->
   <div id="hud">
-    <span id="score">Score: 0</span>
-    <span id="timer">Time: 0:00</span>
+    <span id="score">Score: 0</span>
+    <span id="timer">Time: 0:00</span>
+
     <button id="pauseBtn">Pause</button>
-    <button id="playBtn" style="display:none;">Play</button>
+    <button id="playBtn"  style="display:none">Play</button>
+    <button id="backGameBtn">Back to Menu</button>
   </div>
 
   <!-- Game area -->
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Game‑over overlay -->
+  <!-- ───── Game‑over Overlay ───── -->
   <div id="gameOver" class="overlay">
-    <div id="finalText"></div>
-    <button id="restartBtn">Restart</button>
+    <h2>Game Over!</h2>
+    <p id="finalScore"></p>
+    <div class="go-buttons">
+      <button id="restartBtn">Restart</button>
+      <button id="backBtn">Back to Menu</button>
+    </div>
   </div>
 
-  <script>
-    /***********  Canvas full‑screen  ***********/
-    const canvas = document.getElementById('gameCanvas');
-    const ctx    = canvas.getContext('2d');
-    const resizeCanvas = ()=>{ canvas.width=innerWidth; canvas.height=innerHeight; };
-    addEventListener('resize', resizeCanvas); resizeCanvas();
-
-    /***********  Elements / state vars  ***********/
-    const scoreEl   = document.getElementById('score');
-    const timerEl   = document.getElementById('timer');
-    const pauseBtn  = document.getElementById('pauseBtn');
-    const playBtn   = document.getElementById('playBtn');
-    const startMenu = document.getElementById('startMenu');
-    const gameOverEl= document.getElementById('gameOver');
-    const finalText = document.getElementById('finalText');
-    const restartBtn= document.getElementById('restartBtn');
-    const hud       = document.getElementById('hud');
-
-    const butterflies = [];
-    let score=0, timeLeft=0;
-    let gameRunning=false, gameStarted=false;
-
-    /***********  Helpers  ***********/
-    const rand=(a,b)=>Math.random()*(b-a)+a;
-    function createButterfly(){
-      const size=50, ang=rand(0,Math.PI*2), spd=rand(1.5,4);
-      return{ x:rand(size,canvas.width-size), y:rand(size,canvas.height-size),
-              dx:Math.cos(ang)*spd, dy:Math.sin(ang)*spd, size,
-              color:`hsl(${rand(0,360)},80%,60%)` };
-    }
-    const drawButterfly=b=>{
-      ctx.fillStyle=b.color;
-      ctx.beginPath();
-      ctx.ellipse(b.x,     b.y,20,10, Math.PI/4, 0, Math.PI*2);
-      ctx.ellipse(b.x+10,  b.y,20,10,-Math.PI/4,0, Math.PI*2);
-      ctx.fill();
-    };
-
-    /***********  Start menu  ***********/
-    startMenu.addEventListener('click',e=>{
-      if(e.target.tagName!=='BUTTON') return;
-      const min=parseInt(e.target.dataset.min,10);
-      startGame(min*60);
-    });
-
-    function startGame(seconds){
-      timeLeft=seconds;
-      timerEl.textContent=`Time: ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`;
-      startMenu.style.display='none';
-      hud.style.visibility='visible';
-      gameRunning=gameStarted=true;
-      // initial butterflies
-      butterflies.push(createButterfly(),createButterfly(),createButterfly());
-    }
-
-    /***********  Main loop  ***********/
-    function update(){
-      if(gameRunning){
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        butterflies.forEach(b=>{
-          b.x+=b.dx; b.y+=b.dy;
-          if(b.x<0||b.x>canvas.width)  b.dx*=-1;
-          if(b.y<0||b.y>canvas.height) b.dy*=-1;
-          drawButterfly(b);
-        });
-      }
-      requestAnimationFrame(update);
-    }
-    update();  // kick off loop
-
-    /***********  Click‑to‑hit  ***********/
-    canvas.addEventListener('click',e=>{
-      if(!gameRunning) return;
-      const r=canvas.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
-      for(let i=butterflies.length-1;i>=0;i--){
-        const b=butterflies[i];
-        if(Math.hypot(x-b.x,y-b.y)<30){
-          butterflies.splice(i,1); score++;
-          scoreEl.textContent=`Score: ${score}`; break;
-        }
-      }
-    });
-
-    /***********  Pause / Play  ***********/
-    pauseBtn.onclick = ()=>{
-      if(!gameRunning) return;
-      gameRunning=false; pauseBtn.style.display='none'; playBtn.style.display='inline';
-    };
-    playBtn.onclick  = ()=>{
-      if(gameRunning||!gameStarted) return;
-      gameRunning=true; playBtn.style.display='none'; pauseBtn.style.display='inline';
-    };
-
-    /***********  Spawn & timer intervals  ***********/
-    const spawnInt=setInterval(()=>{ if(gameRunning && butterflies.length<15) butterflies.push(createButterfly()); },800);
-    const timerInt=setInterval(()=>{
-      if(!gameRunning||!gameStarted) return;
-      timeLeft--; const m=Math.floor(timeLeft/60), s=(timeLeft%60).toString().padStart(2,'0');
-      timerEl.textContent=`Time: ${m}:${s}`;
-      if(timeLeft<=0) endGame();
-    },1000);
-
-    /***********  Game‑over / restart  ***********/
-    function endGame(){
-      gameRunning=false; pauseBtn.style.display='none'; playBtn.style.display='none';
-      finalText.textContent=`Game Over!\nFinal score: ${score}`;
-      gameOverEl.style.visibility='visible';
-    }
-    restartBtn.onclick=()=>location.reload();
-  </script>
+  <!-- main script -->
+  <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,104 @@
+/* ───── Global layout ───── */
+html,body{
+  height:100%;
+  margin:0;
+  font-family: 'Roboto';
+  background-color:#9C6782;
+  overflow:hidden;
+}
+
+#gameCanvas{
+  display:block;
+}
+
+/* ───── Heads‑up display ───── */
+#hud{
+  position:absolute;
+  top:10px; 
+  left:10px;
+  display:flex; 
+  gap:14px; 
+  align-items:center;
+  font-size:24px; 
+  font-weight:bold;
+  background:rgba(119, 140, 153, 0.75);
+  padding:6px 16px;
+  border-radius:8px;
+  visibility:hidden;   /* hidden until a round starts */
+}
+#hud button{
+  font-size:18px;
+  font-weight:bold;
+  padding:4px 12px;
+  cursor:pointer;
+}
+
+/* ───── Shared overlay styling ───── */
+.overlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+/* ───── Start menu ───── */
+#startMenu{
+  background:rgba(0,0,0,.55);
+  color:#fff;
+  gap:18px;
+}
+
+#startMenu h1{
+margin:0;
+font-size:52px
+}
+
+#startMenu p {
+margin:0 0 10px;
+font-size:24px
+}
+
+.menu-buttons{
+  display:flex; 
+  gap:16px; 
+  flex-wrap:wrap; 
+  justify-content:center;
+}
+
+.menu-buttons button{
+  font-size:22px;
+  font-weight:bold;
+  padding:8px 20px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+/* ───── Game‑over ───── */
+#gameOver{
+  background:rgba(0,0,0,.6);
+  color:#fff;
+  visibility:hidden;
+}
+#gameOver h2{margin:0 0 16px;
+font-size:48px
+}
+
+#gameOver p {
+margin:0 0 24px;
+font-size:32px
+}
+
+.go-buttons{
+  display:flex; 
+  gap:20px;
+}
+
+.go-buttons button{
+  padding:10px 26px;
+  font-size:20px;
+  font-weight:bold;
+  cursor:pointer;
+}
