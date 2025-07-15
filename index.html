@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Butterfly Hit Game</title>
+  <style>
+    body{margin:0;overflow:hidden;font-family:Arial, sans-serif;background:skyblue;}
+    #gameCanvas{display:block;background:#9C6782;}
+
+    /* Heads‑up display */
+    #hud{
+      position:absolute;top:10px;left:10px;
+      display:flex;gap:12px;align-items:center;
+      font-size:24px;font-weight:bold;
+      background:rgba(255,255,255,.7);padding:6px 14px;border-radius:8px;
+    }
+    #hud button{
+      font-size:18px;font-weight:bold;padding:4px 12px;cursor:pointer;
+    }
+
+    /* Game‑over overlay */
+    #gameOver{
+      position:fixed;inset:0;background:rgba(0,0,0,.6);color:#fff;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      font-size:36px;visibility:hidden;
+    }
+    #gameOver button{margin-top:20px;padding:10px 24px;font-size:20px;cursor:pointer;}
+  </style>
+</head>
+<body>
+  <!-- HUD -->
+  <div id="hud">
+    <span id="score">Score: 0</span>
+    <span id="timer">Time: 3:00</span>
+
+    <button id="pauseBtn">Pause</button>
+    <button id="playBtn" style="display:none;">Play</button>
+  </div>
+
+  <!-- Game area -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Game‑over overlay -->
+  <div id="gameOver">
+    <div id="finalText"></div>
+    <button id="restartBtn">Restart</button>
+  </div>
+
+  <script>
+    /***********  Canvas full‑screen  ***********/
+    const canvas = document.getElementById('gameCanvas');
+    const ctx    = canvas.getContext('2d');
+    function resizeCanvas(){
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    /***********  HUD / State  ***********/
+    const scoreEl   = document.getElementById('score');
+    const timerEl   = document.getElementById('timer');
+    const pauseBtn  = document.getElementById('pauseBtn');
+    const playBtn   = document.getElementById('playBtn');
+    const gameOverEl= document.getElementById('gameOver');
+    const finalText = document.getElementById('finalText');
+    const restartBtn= document.getElementById('restartBtn');
+
+    const butterflies = [];
+    let score = 0;
+    let timeLeft = 180;           // 3 minutes
+    let gameRunning = true;       // false = paused or ended
+
+    /***********  Helpers  ***********/
+    const rand = (min,max)=>Math.random()*(max-min)+min;
+
+    function createButterfly(){
+      const size = 50;
+      const angle = rand(0, Math.PI*2);
+      const speed = rand(1.5, 4);
+      return {
+        x: rand(size, canvas.width - size),
+        y: rand(size, canvas.height - size),
+        dx: Math.cos(angle)*speed,
+        dy: Math.sin(angle)*speed,
+        size,
+        color:`hsl(${rand(0,360)},80%,60%)`
+      };
+    }
+
+    function drawButterfly(b){
+      ctx.fillStyle = b.color;
+      ctx.beginPath();
+      ctx.ellipse(b.x,     b.y,20,10, Math.PI/4, 0, Math.PI*2);
+      ctx.ellipse(b.x+10,  b.y,20,10,-Math.PI/4,0, Math.PI*2);
+      ctx.fill();
+    }
+
+    /***********  Main loop  ***********/
+    function update(){
+      if(!gameRunning){ requestAnimationFrame(update); return; }  // keep loop alive for resume
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      butterflies.forEach(b=>{
+        b.x+=b.dx; b.y+=b.dy;
+        if(b.x<0||b.x>canvas.width)  b.dx*=-1;
+        if(b.y<0||b.y>canvas.height) b.dy*=-1;
+        drawButterfly(b);
+      });
+
+      requestAnimationFrame(update);
+    }
+
+    /***********  Input  ***********/
+    canvas.addEventListener('click', e=>{
+      if(!gameRunning) return;
+      const rect=canvas.getBoundingClientRect();
+      const x=e.clientX-rect.left, y=e.clientY-rect.top;
+
+      for(let i=butterflies.length-1;i>=0;i--){
+        const b=butterflies[i];
+        if(Math.hypot(x-b.x, y-b.y) < 30){
+          butterflies.splice(i,1);
+          score++; scoreEl.textContent=`Score: ${score}`;
+          break;
+        }
+      }
+    });
+
+    /***********  Pause / Play buttons  ***********/
+    pauseBtn.onclick = ()=>{            // Pause
+      if(!gameRunning) return;
+      gameRunning=false;
+      pauseBtn.style.display='none';
+      playBtn.style.display='inline';
+    };
+
+    playBtn.onclick = ()=>{             // Resume
+      if(gameRunning || timeLeft<=0) return;
+      gameRunning=true;
+      playBtn.style.display='none';
+      pauseBtn.style.display='inline';
+    };
+
+    /***********  Timers  ***********/
+    const spawnInt = setInterval(()=>{
+      if(gameRunning && butterflies.length<15) butterflies.push(createButterfly());
+    },800);
+
+    const timerInt = setInterval(()=>{
+      if(!gameRunning) return;
+      timeLeft--;
+      const m=Math.floor(timeLeft/60), s=(timeLeft%60).toString().padStart(2,'0');
+      timerEl.textContent=`Time: ${m}:${s}`;
+      if(timeLeft<=0) endGame();
+    },1000);
+
+    /***********  End / Restart  ***********/
+    function endGame(){
+      gameRunning=false;
+      pauseBtn.style.display='none';
+      playBtn.style.display='none';
+      clearInterval(spawnInt); clearInterval(timerInt);
+      finalText.textContent=`Game Over!\nFinal score: ${score}`;
+      gameOverEl.style.visibility='visible';
+    }
+    restartBtn.onclick = ()=>location.reload();
+
+    /***********  Start!  ***********/
+    butterflies.push(createButterfly(), createButterfly(), createButterfly());
+    update();
+  </script>
+</body>
+</html>
