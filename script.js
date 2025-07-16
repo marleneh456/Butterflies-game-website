@@ -153,8 +153,9 @@ function returnToMenu() {
 
 /* ========== Spawn & countdown timers ========== */
 setInterval(() => {
-  if (gameRunning && butterflies.length < 15) butterflies.push(createButterfly());
-}, 800);
+  if (gameRunning && butterflies.length < 100) butterflies.push(createButterfly());
+}, 200); // faster spawning
+
 
 setInterval(() => {
   if (!gameRunning || !gameStarted) return;
